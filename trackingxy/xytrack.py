@@ -1,5 +1,6 @@
 from collections import deque
 from imutils.video import VideoStream
+from threading import Thread
 import numpy as np
 import cv2
 import imutils
@@ -9,25 +10,31 @@ import sys
 import getopt
 
 ## sending all 2d coordinates, Unity dealing with averages
-
+data = deque([])
 IP = '127.0.0.1'
 
 def socketSend(UDP_PORT):
 	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	sock.sendto(("JUMP!").encode(), (IP, UDP_PORT))
+	while True:
+		try:
+			temp = data.popleft()
+			sock.sendto((temp).encode(), (IP, UDP_PORT))
+		except Exception as e:
+			continue
 
 if __name__ == '__main__':
 	camera, port = None, None
 	debug = 0
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], 'v:p:d', ['videoSrc=', 'port=', 'debug'])
+		opts, args = getopt.getopt(sys.argv[1:], 'c:p:d', ['camera=', 'port=', 'debug'])
 	except getopt.GetoptError:
+		print 'Wrong options'
 		exit(1)
 	for opt, arg in opts:
-		if opt in ('-v', '--videoSrc'):
+		if opt in ('-c', '--camera'):
 			camera = arg
 		if opt in ('-p', '--port'):
-			port = arg
+			port = int(arg)
 		if opt in ('-d', '--debug'):
 			debug = 1
 	## optimized HSV values for red and blue
@@ -37,6 +44,9 @@ if __name__ == '__main__':
 	videoSrc = VideoStream(src=int(camera)).start()
 	## camera warm up for 2 seconds
 	time.sleep(2.0)
+	## start thread to send UDP data
+	dataSender = Thread(target=socketSend, args=(port,))
+	dataSender.start()
 	## constant looping, no exit allowed, must be terminated by unity
 	while True:
 		# grab the current frame
@@ -75,6 +85,7 @@ if __name__ == '__main__':
 					(0, 0, 255), 2)
 				cv2.circle(frame, center, 5, (255, 255, 255), -1)
 				strRed = 'Red (x, y): ' + str(int(redX)) + ', ' + str(int(redY))
+				data.append(strRed)
 				if debug is 1:
 					print strRed
 		## now for blue
@@ -106,6 +117,7 @@ if __name__ == '__main__':
 					(255, 0, 0), 2)
 				cv2.circle(frame, center, 5, (255, 255, 255), -1)
 				strBlue = 'Blue (x, y): ' + str(int(blueX)) + ', ' + str(int(blueY))
+				data.append(strBlue)
 				if debug is 1:
 					print strBlue
 		# show the frame to our screen
