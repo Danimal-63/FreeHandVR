@@ -1,13 +1,31 @@
+from collections import deque
+from threading import Thread
 import cv2
 import numpy as np
 import copy
 import math
+import time
+import socket
+import sys
+import getopt
 
 # Environment:
 # OS    : Windows 10
 # python: 2.7
 # opencv: 3.4.0
 # Lukas 2/16/19
+
+data = deque([])
+IP = '127.0.0.1'
+
+def socketSend(UDP_PORT):
+	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	while True:
+		try:
+			temp = data.popleft()
+			sock.sendto((temp).encode(), (IP, UDP_PORT))
+		except Exception as e:
+			continue
 
 def calculateFingers(res, drawing):
     #  convexity defect
@@ -34,58 +52,75 @@ def calculateFingers(res, drawing):
                 return True, 0
     return False, 0
 
+if __name__ == '__main__':
+	cam, port = None, None
+	debug = 0
+	try:
+		opts, args = getopt.getopt(sys.argv[1:], 'c:p:d', ['camera=', 'port=', 'debug'])
+	except getopt.GetoptError:
+		print 'Wrong options'
+		exit(1)
+	for opt, arg in opts:
+		if opt in ('-c', '--camera'):
+			cam = arg
+		if opt in ('-p', '--port'):
+			port = int(arg)
+		if opt in ('-d', '--debug'):
+			debug = 1
+	camera = cv2.VideoCapture(int(cam))
+	camera.set(10, 200)
+	dataSender = Thread(target=socketSend, args=(port,))
+	dataSender.start()
+	while camera.isOpened():
+		#Main Camera
+		ret, frame = camera.read()
+		frame = cv2.bilateralFilter(frame, 5, 50, 100)  # Smoothing
+		frame = cv2.flip(frame, 1)  #Horizontal Flip
+		if debug is 1:
+			cv2.imshow('original', frame)
+	
+	
+		#Background Removal
+		bgModel = cv2.createBackgroundSubtractorMOG2(0, 50)
+		fgmask = bgModel.apply(frame)
+	
+		kernel = np.ones((3, 3), np.uint8)
+		fgmask = cv2.erode(fgmask, kernel, iterations=1)
+		img = cv2.bitwise_and(frame, frame, mask=fgmask)
+	
+		# Skin detect and thresholding
+		hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+		lower = np.array([30, 30, 80], dtype="uint8")
+		upper = np.array([180, 180, 255], dtype="uint8")
+		skinMask = cv2.inRange(hsv, lower, upper)
+		if debug is 1:
+			cv2.imshow('Threshold Hands', skinMask)
+	
+		# Getting the contours and convex hull
+		skinMask1 = copy.deepcopy(skinMask)
+		_,contours, hierarchy = cv2.findContours(skinMask1, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+		length = len(contours)
+		maxArea = -1
+		if length > 0:
+			for i in xrange(length):
+				temp = contours[i]
+				area = cv2.contourArea(temp)
+				if area > maxArea:
+					maxArea = area
+					ci = i
 
-# Open Camera
-camera = cv2.VideoCapture(0)
-camera.set(10, 200)
+			res = contours[ci]
+			hull = cv2.convexHull(res)
+			drawing = np.zeros(img.shape, np.uint8)
+			cv2.drawContours(drawing, [res], 0, (0, 255, 0), 2)
+			cv2.drawContours(drawing, [hull], 0, (0, 0, 255), 3)
 
-while camera.isOpened():
-    #Main Camera
-    ret, frame = camera.read()
-    frame = cv2.bilateralFilter(frame, 5, 50, 100)  # Smoothing
-    frame = cv2.flip(frame, 1)  #Horizontal Flip
-    cv2.imshow('original', frame)
+			isFinishCal, cnt = calculateFingers(res, drawing)
+			if cnt <= 5:
+				data.append(str(cnt))
+			if debug is 1:
+				print "Fingers", cnt
+				cv2.imshow('output', drawing)
 
-  
-    #Background Removal
-    bgModel = cv2.createBackgroundSubtractorMOG2(0, 50)
-    fgmask = bgModel.apply(frame)
-
-    kernel = np.ones((3, 3), np.uint8)
-    fgmask = cv2.erode(fgmask, kernel, iterations=1)
-    img = cv2.bitwise_and(frame, frame, mask=fgmask)
-
-    # Skin detect and thresholding
-    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    lower = np.array([30, 30, 80], dtype="uint8")
-    upper = np.array([180, 180, 255], dtype="uint8")
-    skinMask = cv2.inRange(hsv, lower, upper)
-    cv2.imshow('Threshold Hands', skinMask)
-
-    # Getting the contours and convex hull
-    skinMask1 = copy.deepcopy(skinMask)
-    _,contours, hierarchy = cv2.findContours(skinMask1, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    length = len(contours)
-    maxArea = -1
-    if length > 0:
-        for i in xrange(length):
-            temp = contours[i]
-            area = cv2.contourArea(temp)
-            if area > maxArea:
-                maxArea = area
-                ci = i
-
-        res = contours[ci]
-        hull = cv2.convexHull(res)
-        drawing = np.zeros(img.shape, np.uint8)
-        cv2.drawContours(drawing, [res], 0, (0, 255, 0), 2)
-        cv2.drawContours(drawing, [hull], 0, (0, 0, 255), 3)
-
-        isFinishCal, cnt = calculateFingers(res, drawing)
-        print "Fingers", cnt
-        cv2.imshow('output', drawing)
-
-    k = cv2.waitKey(10)
-    if k == 27:  # press ESC to exit
-        break
+		k = cv2.waitKey(10)
 
