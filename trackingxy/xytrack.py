@@ -28,7 +28,7 @@ if __name__ == '__main__':
 	debug = 0
 	redLower, blueLower = None, None
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], 'c:p:d:r:b:', ['camera=', 'port=', 'debug', 'red=', 'blue='])
+		opts, args = getopt.getopt(sys.argv[1:], 'c:p:dr:b:', ['camera=', 'port=', 'debug', 'red=', 'blue='])
 	except getopt.GetoptError:
 		print 'Wrong options'
 		exit(1)
