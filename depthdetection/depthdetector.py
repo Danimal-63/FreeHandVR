@@ -1,3 +1,4 @@
+from ast import literal_eval
 from collections import deque
 from imutils.video import VideoStream
 from threading import Thread
@@ -9,7 +10,9 @@ import socket
 import sys
 import getopt
 
-## sending all 2d coordinates, Unity dealing with averages
+## blue ball must depth perception
+
+## sending scaled depth
 data = deque([])
 IP = '127.0.0.1'
 
@@ -23,10 +26,10 @@ def socketSend(UDP_PORT):
 			continue
 
 if __name__ == '__main__':
-	camera, port = None, None
+	camera, port, blueLower = None, None, None
 	debug = 0
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], 'c:p:d', ['camera=', 'port=', 'debug'])
+		opts, args = getopt.getopt(sys.argv[1:], 'c:p:db:', ['camera=', 'port=', 'debug', 'blue='])
 	except getopt.GetoptError:
 		print 'Wrong options'
 		exit(1)
@@ -37,9 +40,11 @@ if __name__ == '__main__':
 			port = int(arg)
 		if opt in ('-d', '--debug'):
 			debug = 1
-	## optimized HSV values for red and blue
-	redLower = (170, 150, 60)
-	blueLower = (90, 170, 60)
+		if opt in ('-b', '--blue'):
+			blueLower = literal_eval(arg)
+	## optimized HSV values for blue
+	if blueLower is None:
+		blueLower = (90, 170, 60)
 	upper = (255, 255, 255)
 	videoSrc = VideoStream(src=int(camera)).start()
 	## camera warm up for 2 seconds
