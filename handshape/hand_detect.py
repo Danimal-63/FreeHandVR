@@ -119,7 +119,8 @@ if __name__ == '__main__':
 			if cnt <= 5:
 				data.append(str(cnt))
 			if debug is 1:
-				print "Fingers", cnt
+				if cnt <= 5
+					print "Fingers", cnt
 				cv2.imshow('output', drawing)
 
 		k = cv2.waitKey(10)
