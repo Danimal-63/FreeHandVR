@@ -13,7 +13,7 @@ for i in range(20):
 	except:
 		break:
 for i in range(len(videoSrc)):
-	name[i] = "Camera" + str(i+1)
+	name[i] = "Camera" + str(i)
 while True:
 	for i in range(len(videoSrc)):
 		frame[i] = videoSrc[i].read()
