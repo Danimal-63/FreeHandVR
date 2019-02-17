@@ -14,8 +14,9 @@ for i in range(20):
 		i=+1
 	except:
 		break
-for j in range(i):
-	name[j] = "Camera " + str(i)
+for j in range(i + 1):
+	name[j] = "Camera " + str(j)
+print name
 while True:
 	for j in range(i + 1):
 		frame[j] = videoSrc[j].read()
