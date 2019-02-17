@@ -1,4 +1,5 @@
 from collections import deque
+from ast import literal_eval
 from imutils.video import VideoStream
 from threading import Thread
 import numpy as np
@@ -25,8 +26,9 @@ def socketSend(UDP_PORT):
 if __name__ == '__main__':
 	camera, port = None, None
 	debug = 0
+	redLower, blueLower = None, None
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], 'c:p:d', ['camera=', 'port=', 'debug'])
+		opts, args = getopt.getopt(sys.argv[1:], 'c:p:d:r:b:', ['camera=', 'port=', 'debug', 'red=', 'blue='])
 	except getopt.GetoptError:
 		print 'Wrong options'
 		exit(1)
@@ -37,9 +39,17 @@ if __name__ == '__main__':
 			port = int(arg)
 		if opt in ('-d', '--debug'):
 			debug = 1
+		if opt in ('-r', '--red'):
+			redLower = literal_eval(arg)
+		if opt in ('-b', '--blue'):
+			blueLower = literal_eval(arg)
 	## optimized HSV values for red and blue
-	redLower = (170, 150, 60)
-	blueLower = (90, 170, 60)
+	
+	if redLower is None:	
+		redLower = (170, 150, 60)
+	if blueLower is None:
+		blueLower = (90, 170, 60)
+	
 	upper = (255, 255, 255)
 	videoSrc = VideoStream(src=int(camera)).start()
 	## camera warm up for 2 seconds
