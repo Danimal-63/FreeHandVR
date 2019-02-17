@@ -4,12 +4,13 @@ import cv2
 import imutils
 import numpy as np
 import sys
+import re
 
 ## need to run this twice, one red and one blue
 
 ## specify red or blue
 
-if len(sys.argv) != 2:
+if len(sys.argv) != 3:
 	print 'Wrong options'
 	exit(1)
 
@@ -17,9 +18,8 @@ if "red" in sys.argv[1]:
 	filename = 'red.txt'
 else:
 	filename = 'blue.txt'
-	
-# open the camera
-cap = cv2.VideoCapture(0)
+
+number = int(re.search(r'\d+', sys.argv[2]).group())
 
 def nothing(x):
     pass
@@ -40,7 +40,7 @@ cv2.createTrackbar('LowV', 'Calibration',0,255,nothing)
 while True:
 
 	#read the image from the camera
-	videoSrc = VideoStream(src=0).start()    
+	videoSrc = VideoStream(src=number).start()    
 
 	#You will need this later
 	frame = videoSrc.read()
@@ -92,3 +92,4 @@ text_file = open(filename, "w")
 text_file.write("("+str(lowh)+","+str(lows)+","+str(lowv)+")")
 text_file.close()
 cv2.destroyAllWindows()
+print number
