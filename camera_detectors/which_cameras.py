@@ -10,11 +10,11 @@ name = [None] * 20
 i = 0
 for i in range(20):
 	try:
-		videoSrc[i] = VideoStream(src=i).start()
+		videoSrc[i] = VideoStream(src=int(i)).start()
 		i=+1
 	except:
 		break
-for i in range(i):
+for j in range(i):
 	name[i] = "Camera " + str(i)
 while True:
 	for j in range(i + 1):
